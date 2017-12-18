@@ -1,0 +1,216 @@
+---
+title: | 
+    | **How does socio-economic and demographic dissimilarity determine physical and virtual segregation?** 
+author: |
+    | Michael Dorman, Tal Svoray, Itai Kloog
+    | **Geography and Environmental Development**
+date: "`2017-12-18`"
+output: 
+  beamer_presentation:
+    keep_tex: true
+    includes:
+      in_header: header.tex
+    fig_caption: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Introduction
+
+* One of the most prominent expressions of inequality is **spatial segregation** based on socio-economic (Jargowsky, 1996) and racial (Rugh & Massey, 2010) characteristics of residents
+
+* Segregation is related to exclusion of poor neighborhoods from privileges and benefits, which violates widely shared norms of **equal opportunity and dignity of each person**
+
+\begin{figure}
+\includegraphics[width=\textwidth,height=.38\textheight]{/home/michael/Dropbox/Presentations/p_2017_05_Interdisciplinary_Grant_BGU/images/rio.jpg}
+\caption{Residential spatial segregation in Rio De Janeiro, Brazil\footnotemark}
+\end{figure}
+\footnotetext{https://jeffreybyuen.wordpress.com/}
+
+## Introduction
+
+\begin{columns}
+\begin{column}{.5\linewidth}
+
+\begin{itemize}
+\item Previous studies on spatial segregation mostly used census data and thus focused on measuring population distribution patterns in \textbf{residential space} (Dwyer, 2007; Massey and Denton, 1988; Vesselinov \textit{et al.}, 2007)
+\item Nowadays it is acknowledged that segregation is also manifested in \textbf{other spheres and aspects of daily life} (Wissink \textit{et al.}, 2016)
+\end{itemize}
+
+\end{column}
+
+\begin{column}{.5\linewidth}
+\begin{figure}
+\includegraphics[width=\textwidth,height=.4\textheight]{./images/PNAS-2017-Chodrow-11591-6.pdf}
+\caption{Segregation in Detroit, USA (Chodrow 2017, PNAS)}
+\end{figure}
+\end{column}
+\end{columns}
+
+## Introduction
+
+\begin{columns}
+\begin{column}{.5\linewidth}
+
+\begin{itemize}
+\item In parallel, there has been an explosion of interest in \textbf{social network analysis}, primarily thanks to the advent of new online \textbf{big data sources} on large social groups (Barabási, 2011; Borgatti \textit{et al.}, 2009; Lazer \textit{et al.}, 2009) 
+\item Particularly, \textbf{Location-Based Social Networks (LBSN)} such as \textbf{Twitter} provide opportunities to study spatial dimensions of human behavior (Steiger \textit{et al.}, 2015)
+\end{itemize}
+
+\end{column}
+
+\begin{column}{.5\linewidth}
+\begin{figure}
+\includegraphics[width=\textwidth,height=.4\textheight]{./images/Lazer et al. 2009 Computational Social Science.pdf}
+\caption{Lazer \textit{et al.} 2009, Science}
+\end{figure}
+\end{column}
+\end{columns}
+
+
+## Introduction
+
+* The potential of LBSN data for studying the way socio-economic and demographic dissimilarity between populations translates to actual segregation was **acknowledged** (Wissink *et al.* 2016) but largely **unrealized**
+
+* Namely, efforts were limited to -
+    * Individual regions
+    * Semi-qualitative analysis
+    * Only considering mobility (physical ties)
+
+## Introduction
+
+```{r, fig.cap="Unevenly segregated activity spaces of West End and East End residents in Louisville, Kentucky (Shelton \\textit{et al.} 2015)", echo=FALSE, out.width = "270px"}
+knitr::include_graphics("/home/michael/Dropbox/Presentations/p_2017_05_Interdisciplinary_Grant_BGU/images/shelton_2015.png")
+```
+
+## Aim
+
+* Develop and apply **novel spatial network analysis methodology** to evaluate the way that - 
+    * Dissimilarity in **population characteristics**
+    * Translates to **segregation** – both **physical** and **virtual** – 
+    * Between the **geographical areas** those populations occupy
+
+## Objectives
+
+* **Constructing** weighted **networks** representing physical and virtual ties on two distinct spatial scales, based on Twitter
+* Fitting models where **tie strength** between given areas is **explained** with - 
+    * Geographical distance
+    * Socio-economic dissimilarity 
+    * Demographic dissimilarity
+* Evaluating the **effect size** and **direction** of the effects
+
+## Methods - Data collection
+
+\begin{columns}
+\begin{column}{.4\linewidth}
+
+Twitter data
+
+\begin{itemize}
+\item \textbf{Streaming API} - continuously collect geo-referenced tweets falling within a given study area 
+\item \textbf{REST API} - collect the list of users the specified user follows (otherwise known as their \textit{friends})
+\end{itemize}
+
+\end{column}
+\begin{column}{.6\linewidth}
+\begin{figure}
+\includegraphics[width=0.75\textwidth]{/home/michael/Dropbox/Presentations/p_2017_05_Interdisciplinary_Grant_BGU/images/json_example.png}
+\caption{Metadata for Twitter message}
+\end{figure}
+\end{column}
+\end{columns}
+
+## Methods - Data collection
+
+\begin{columns}
+\begin{column}{.4\linewidth}
+
+Socio-Economic and Demographic characteristics
+
+\begin{itemize}
+\item \textbf{American Community Survey (ACS)} 5-Year Estimates (2010-2014)
+\begin{itemize}
+\item Median household income
+\item Median age
+\item Racial composition
+\end{itemize}
+\end{itemize}
+
+\end{column}
+\begin{column}{.6\linewidth}
+\begin{figure}
+\includegraphics[width=0.9\textwidth]{/home/michael/Dropbox/Projects/Twitter_Network_Analysis_for_Paper_IJGIS_2017/maps_01_independent_variables_boston_income2.pdf}
+\caption{Median income in Greater Boston}
+\end{figure}
+\end{column}
+\end{columns}
+
+## Methods - Network construction
+
+Weighted networks representing **two tie types** – 
+
+* **Follower (virtual) ties** = The number of *follower ties* between a user from area A and a user in area B, divided by the number of potential ties
+* **Mobility (physical) ties** = The number of users from area A who have sent at least one tweet when *physically located in area B*, divided by the number of potential ties
+
+On **two spatial scales** –
+
+* **Counties** in the **contiguous USA** (~8,000,000 $km^2$)
+* **Census tracts** in **Greater Boston Area** (~50,000 $km^2$)
+
+## Methods - Network construction
+
+<!-- ![Calculation of the follower tie ratio between two census tracts](/home/michael/Dropbox/Projects/Twitter_Network_Analysis_for_Paper_GA_2018/maps_03_network_ties_illustration2.pdf) -->
+
+\begin{figure}
+\includegraphics[width=0.55\textwidth]{/home/michael/Dropbox/Projects/Twitter_Network_Analysis_for_Paper_GA_2018/maps_03_network_ties_illustration2.pdf}
+\caption{Calculation of the follower tie ratio between two census tracts}
+\end{figure}
+
+## Methods - Network construction
+
+<!-- ![Observed follower and mobility ties between adjacent tracts](/home/michael/Dropbox/Projects/Twitter_Network_Analysis_for_Paper_IJGIS_2017/maps_02_network_ties_common_border_boston_DIRECTED.pdf) -->
+
+\begin{figure}
+\includegraphics[width=0.99\textwidth]{/home/michael/Dropbox/Projects/Twitter_Network_Analysis_for_Paper_IJGIS_2017/maps_02_network_ties_common_border_boston_DIRECTED.pdf}
+\caption{Observed follower and mobility ties between adjacent tracts}
+\end{figure}
+
+## Results - Distance effect
+
+![Follower and mobility tie proportions as function of geographical distance in the Greater Boston Area and the US](/home/michael/Dropbox/Projects/Twitter_Network_Analysis_for_Paper_IJGIS_2017/plots_03_distance_effect_on_tie_ratio.pdf)
+
+## Results - Socio-Economic and Demographic Effects
+
+<!-- ![Predicted **follower** and **mobility** tie realization in the **US**](/home/michael/Dropbox/Projects/Twitter_Network_Analysis_for_Paper_IJGIS_2017/plots_01_ties_us_prediction_DIRECTED.pdf) -->
+
+\begin{figure}
+\includegraphics[width=1.05\textwidth]{/home/michael/Dropbox/Projects/Twitter_Network_Analysis_for_Paper_IJGIS_2017/plots_01_ties_us_prediction_DIRECTED.pdf}
+\caption{Predicted \textbf{follower} and \textbf{mobility} tie realization in the \textbf{US}}
+\end{figure}
+
+## Discussion
+
+* Location-Based Social Networks (e.g. Twitter) can be used to map and examine **physical and virtual spatial segregation** in **large-scale human societies**
+
+* Spatial segregation exists in both physical and virtual dimensions, though **weaker in the virtual dimension** due to lower tie formation costs (Wellman & Hampton, 1999)
+
+* Income and age induce **asymmetric segregation** due to the unbalanced motivation of dissimilar populations (Wissink & Hazelzet, 2016)
+
+* The presented methodology can help and **map** the **intangible barriers** for populations movement in physical space and their communication in the virtual one and help **identify** their socio-economic and demographic causes
+
+## 
+
+\begin{center}
+\Huge \textbf{\color{cyan}{Thank you for listening!}}
+\end{center}
+
+
+
+
+
+
+
+
+
