@@ -1,0 +1,1137 @@
+---
+title: | 
+    | Israeli Geographical Association Conference
+    | **Spatial Data in R: Overview and Examples**
+author: |
+    | Michael Dorman
+    | **Geography and Environmental Development**
+    | dorman@post.bgu.ac.il
+date: "2017-12-18"
+output: 
+  beamer_presentation:
+    keep_tex: true
+    includes:
+      in_header: header.tex
+    fig_caption: true
+always_allow_html: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+foo = .packages()
+knitr::opts_chunk$set(cache = FALSE, echo = TRUE, collapse = TRUE, fig.align = "center")
+```
+
+## Contents
+
+* The aim of this tutorial is to provide an **introduction to spatial data analysis in R** 
+* **Part I** is an **overview** of notable packages for spatial analysis in R
+* **Parts II & III** comprise a practical tutorial of the **`sf` package**
+* Slides and code available on [https://goo.gl/S1Cgv1](https://github.com/michaeldorman/R-Spatial-Workshop-at-IGU-2017/archive/master.zip)
+
+## Requirements
+
+* You need to **install several packages** to run code examples - 
+
+```{r, eval=FALSE}
+install.packages("sf")
+install.packages("mapview")
+install.packages("units")
+install.packages("dplyr")
+```
+
+* Part of the tutorial requires the **development version of `sf`**, which can be installed with - 
+
+```{r, eval=FALSE}
+install.packages("devtools")
+devtools::install_github("r-spatial/sf")
+```
+
+## 
+
+\begin{center}
+\Huge Part I: Overview
+\end{center}
+
+## Introduction
+
+* **R** is a **programming language** and **environment**, originally developed for **statistical computing** and **graphics**
+* Over time, R has had an increasing number of **contributed packages** for handling and analysing spatial data
+* Today, spatial analysis is a **major functionality in R**
+* As of November 2017, there are [**182 packages**](https://cran.r-project.org/web/views/Spatial.html) for the analysis of spatial data in R
+
+```{r, echo=FALSE, fig.cap="Books on Spatial Data Analysis with R", out.width="275px"}
+knitr::include_graphics("images/books.pdf")
+```
+
+## **`rgdal`**, **`sf`**, **`raster`**: Handling spatial data
+
+* Reading and writing - 
+    * **Vector formats** such as **ESRI Shapefile**, **GeoJSON** and **GPX** - package `rgdal` or `sf` (using [OGR](http://www.gdal.org/ogr/))
+    * **Raster formats** such as **GeoTIFF** - package `raster` (using [GDAL](http://www.gdal.org/))
+    * Specialized formats can be read with other packages, for example - 
+        * **HDF** files can be read with package `gdalUtils`
+        * **NetCDF** files can be read with package `ncdf4`
+* Reprojection (using [PROJ4](http://trac.osgeo.org/proj/))
+
+## **`rgeos`**, **`sf`**: Geoprocessing Vector Layers
+
+* Geometric operations on **vector layers** - package `rgeos` or `sf` (using [GEOS](http://trac.osgeo.org/geos/)) -
+    * **Numeric operators** - Area, Length, Distance...
+    * **Logical operators** - Contains, Within, Within distance, Crosses, Overlaps, Equals, Intersects, Disjoint, Touches...
+    * **Geometry generating operators** - Centroid, Buffer, Intersection, Union, Difference, Convex-Hull, Simplification...
+
+```{r, echo=FALSE, results='hide', message=FALSE, fig.cap="Buffer function", fig.width=5, fig.height=3.5, out.width="150px"}
+library(rgeos)
+p1 = readWKT("POLYGON((0 1,0.95 0.31,0.59 -0.81,-0.59 -0.81,-0.95 0.31,0 1))")
+p2 = readWKT("POLYGON((2 2,-2 2,-2 -2,2 -2,2 2),(1 1,-1 1,-1 -1,1 -1,1 1))")
+par(mfrow=c(2,3), mar = c(0, 0, 0.75, 0))
+plot(gBuffer(p1,width=-0.2),col='grey',xlim=c(-1.5,1.5),ylim=c(-1.5,1.5))
+plot(p1,border='red',lwd=2,add=TRUE);title("width: -0.2")
+plot(gBuffer(p1,width=0),col='grey',xlim=c(-1.5,1.5),ylim=c(-1.5,1.5))
+plot(p1,border='red',lwd=2,add=TRUE);title("width: 0")
+plot(gBuffer(p1,width=0.2),col='grey',xlim=c(-1.5,1.5),ylim=c(-1.5,1.5))
+plot(p1,border='red',lwd=2,add=TRUE);title("width: 0.2")
+plot(gBuffer(p2,width=-0.2),col='grey',pbg='white',xlim=c(-2.5,2.5),ylim=c(-2.5,2.5))
+plot(p2,border='red',lwd=2,add=TRUE);title("width: -0.2")
+plot(gBuffer(p2,width=0),col='grey',pbg='white',xlim=c(-2.5,2.5),ylim=c(-2.5,2.5))
+plot(p2,border='red',lwd=2,add=TRUE);title("width: 0")
+plot(gBuffer(p2,width=0.2),col='grey',pbg='white',xlim=c(-2.5,2.5),ylim=c(-2.5,2.5))
+plot(p2,border='red',lwd=2,add=TRUE);title("width: 0.2")
+```
+
+## **`geosphere`**: Geometric calculations on longitude/latitude
+
+* Package `geosphere` implements spherical trigonometry functions for distance and direction-related calculations on geographic coordinates (lon-lat)
+
+```{r, echo=FALSE, results='hide', message=FALSE, fig.cap="Points on Great Circle", out.width="250px"}
+library(geosphere)
+data(wrld)
+plot(wrld, type = 'l', asp = 1, col = "grey")
+LA = c(-118.40, 33.95)
+NY = c(-73.78, 40.63)
+gc = greatCircle(LA, NY)
+lines(gc, lwd=2, col='blue')
+gci = gcIntermediate(LA, NY)
+lines(gci, lwd=4, col='green')
+points(rbind(LA, NY), col='red', pch=20, cex=2)
+mp = midPoint(LA, NY)
+points(mp, pch='*', cex=3, col='orange')
+```
+
+## **`raster`**: Geoprocessing Rasters
+
+* Geometric operations on **rasters** can be done with package `raster` -
+    * **Accessing cell values** - As vector, As matrix, Extract to points / lines / polygons, random / regular sampling, Frequency table, Histogram...
+    * **Raster algebra** - Arthmetic (`+`, `-`, ...), Math (`sqrt`, `log10`, ...), logical (`!`, `==`, `>`, ...), summary (`mean`, `max`, ...), Mask, Overlay...
+    * **Changing resolution and extent** - Crop, Mosaic, (Dis)aggregation, Reprojection, Resampling, Shift, Rotation...
+    * **Focal operators** - Distance, Direction, Focal Filter, Slope, Aspect, Flow direction...
+    * **Transformations** - Vector layers <-> Raster...
+
+## **`raster`**: Geoprocessing Rasters
+
+```{r, echo=FALSE, results='hide', message=FALSE, fig.cap="Topographic aspect and slope calculation", fig.width=11.05, fig.height=4.4, out.width="300px"}
+# library("devtools")
+# install_github("etiennebr/visualraster")
+library(visualraster)
+proj_random_tm = "+proj=tmerc +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +units=m"
+pal = list (
+  qualitative = brewer.pal(11, "Set3"),
+  circular = c("#0088FF", "#ffffff", "#F51D1D", "#400038", "#0088FF")
+)
+r_volcano = raster(volcano)
+extent(r_volcano) = extent(0, ncol(r_volcano),0, nrow(r_volcano))
+projection(r_volcano) =  proj_random_tm
+r_terrain = terrain(r_volcano, opt = c("slope", "aspect"), unit = "degrees")
+
+par(mfrow = c(1,3), mar = c(1,1,1,5))
+plot(r_volcano, main = "Elevation (m)", col = terrain.colors(30), axes = FALSE)
+contour(r_volcano, add = TRUE)
+plot(r_terrain[[1]], main = "Slope (°)", col = heat.colors(30) %>% rev, axes = FALSE)
+plot(r_terrain[[2]], main = "Aspect (°)", col = rainbow(30)[1:28], axes = FALSE)
+```
+
+## **`gstat`**: Geostatistical Modelling
+
+* Univariate and multivariate geostatistics - 
+    * Variogram modelling 
+    * Ordinary and universal point or block (co)kriging
+    * Cross-validation
+
+```{r, echo=FALSE, results='hide', message=FALSE, fig.cap="Predicted Zinc concentration, using Ordinary Kriging", fig.width=5, fig.height=6, out.width="135px"}
+library(sp)
+library(gstat)
+library(automap)
+library(raster)
+library(rasterVis)
+
+data(meuse)
+data(meuse.riv)
+
+coordinates(meuse) = ~ x + y
+data(meuse.grid)
+gridded(meuse.grid) = ~ x + y
+grid = raster(meuse.grid)
+f = log(zinc) ~ 1
+v = autofitVariogram(f, meuse)
+g = gstat(formula = log(zinc) ~ 1, model = v$var_model, data = meuse)
+predicted = interpolate(grid, g)
+predicted = mask(predicted, grid)
+
+plot(predicted)
+polygon(meuse.riv, asp = 1, col = "lightblue")
+plot(meuse, pch = 1, cex = log(meuse$zinc) / 5, add = TRUE)
+```
+
+## **`spdep`**: Spatial dependence modelling
+
+* Modelling with spatial weights - 
+    * Building neighbour lists and spatial weights
+    * Tests for spatial autocorrelation for areal data (e.g. Moran's I)
+    * Spatial regression models (e.g. SAR, CAR)
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE, fig.cap="Neighbours list based on regions with contiguous boundaries", out.width="250px"}
+# From help page of 'poly2nb' function
+library(spdep)
+example(nc.sids)
+xxnb = poly2nb(nc.sids)
+plot(nc.sids, border = "grey")
+plot(xxnb, coordinates(nc.sids), add=TRUE, col="black")
+```
+
+## **`spatstat`**: Spatial point pattern analysis
+
+* Techniques for statistical analysis of spatial point patterns, such as - 
+    * Kernel density estimation
+    * Detection of clustering using Ripley’s K-function 
+    * Spatial logistic regression
+    
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE, fig.cap="Distance map for the Biological Cells Point Pattern dataset", out.width="120px"}
+library(spatstat)
+data(cells)
+U = distmap(cells)
+contour(U, main = "")
+plot(cells, add=T, col = "red", pch = 3)
+```
+
+## **`osmdata`**: Access to OpenStreetMap data
+
+* Accessing OpenStreetMap (OSM) data using the [Overpass API](http://wiki.openstreetmap.org/wiki/Overpass_API)
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE, fig.cap="Beer-Sheva road network", fig.width=8, fig.height=4, out.width="300px"}
+library(sf)
+# library(mapview)
+# library(osmdata)
+# library(dplyr)
+# q = opq(bbox = "Beer-Sheva, Israel")
+# q = add_osm_feature(q, key = "highway")
+# dat = osmdata_sf(q)
+# lines = dat$osm_lines
+# pol = dat$osm_polygons
+# pol = st_cast(pol, "MULTILINESTRING")
+# pol = st_cast(pol, "LINESTRING")
+# lines = rbind(lines, pol)
+# lines = lines[, c("osm_id", "highway")]
+# lines = st_transform(lines, 32636)
+# st_write(lines, "osm_example.shp", delete_dsn = TRUE)
+lines = st_read("examples/osm_example.shp")
+plot(lines, ncol = 2)
+```
+
+## **`leaflet`**, **`mapview`**: Web mapping
+
+* Packages `leaflet` and `mapview` provide methods to produce **interactive maps** using the [Leaflet](http://leafletjs.com/) JavaScript library
+
+```{r eval=FALSE, include=FALSE}
+library(leaflet)
+states = geojsonio::geojson_read("data/us-states.geojson", what = "sp")
+
+bins = c(0, 10, 20, 50, 100, 200, 500, 1000, Inf)
+pal = colorBin("YlOrRd", domain = states$density, bins = bins)
+
+labels = sprintf(
+  "<strong>%s</strong><br/>%g people / mi<sup>2</sup>",
+  states$name, states$density
+) %>% lapply(htmltools::HTML)
+
+leaflet(states) %>%
+  setView(-96, 37.8, 4) %>%
+  addProviderTiles(providers$CartoDB.DarkMatterNoLabels) %>%
+  addPolygons(
+    fillColor = ~pal(density),
+    weight = 2,
+    opacity = 1,
+    color = "white",
+    dashArray = "3",
+    fillOpacity = 0.7,
+    highlight = highlightOptions(
+      weight = 5,
+      color = "#666",
+      dashArray = "",
+      fillOpacity = 0.7,
+      bringToFront = TRUE),
+    label = labels,
+    labelOptions = labelOptions(
+      style = list("font-weight" = "normal", padding = "3px 8px"),
+      textsize = "15px",
+      direction = "auto")) %>%
+  # addProviderTiles(providers$CartoDB.DarkMatterOnlyLabels) %>% 
+  addLegend(pal = pal, values = ~density, opacity = 0.7, title = NULL,
+    position = "bottomright")
+```
+
+```{r, echo=FALSE, fig.cap="Intractive 'Leaflet' map", out.width="275px"}
+knitr::include_graphics("images/leaflet1.png")
+```
+
+```{r include=FALSE}
+rm(list=setdiff(ls(), "foo"))
+bar = .packages()
+foobar = setdiff(bar, foo)
+toRemove = paste("package:", foobar, sep='') 
+for(i in seq_along(foobar)) {           
+    detach(toRemove[i], character.only=TRUE)    
+}
+```
+
+## 
+
+\begin{center}
+\Huge Part II: Intro to \textbf{\texttt{sf}}
+\end{center}
+
+## Vector layers in R: package `sf`
+
+* `sf` is a relative new (2016-) R package for **handling vector layers in R** 
+* In the long-term, `sf` will replace `rgdal` (2003-), `sp` (2005-), and `rgeos` (2011-) 
+
+* The main innovation in `sf` is a complete implementation of the [**Simple Features**](https://cran.r-project.org/web/packages/sf/vignettes/sf1.html#what-is-a-feature) standard 
+
+* Since 2003, Simple Features been widely implemented in **spatial databases** (such as **PostGIS**), commercial GIS (e.g., **ESRI ArcGIS**) and forms the vector data basis for libraries such as GDAL
+
+* When working with spatial databases, Simple Features are commonly specified as [**Well Known Text (WKT)**](https://en.wikipedia.org/wiki/Well-known_text)
+
+* A subset of simple features forms the [**GeoJSON**](https://en.wikipedia.org/wiki/GeoJSON) standard
+
+## Vector layers in R: package `sf`
+
+* The `sf` class extends the `data.frame` class to include a **geometry** column 
+* This is similar to the way that **spatial databases** are structured
+
+```{r, echo=FALSE, fig.cap="Structure of an \\texttt{sf} object\\footnotemark", out.width="300px"}
+knitr::include_graphics("images/sf.png")
+```
+
+\footnotetext{\url{https://cran.r-project.org/web/packages/sf/vignettes/sf1.html}}
+
+## Vector layers in R: package `sf`
+
+* The `sf` class is actually a hierarchical structure composed of three classes - 
+    * \textcolor{olive}{\texttt{\textbf{sf}}} - Vector **layer** object, a table (`data.frame`) with one or more attribute columns and one geometry column
+    * \textcolor{red}{\texttt{\textbf{sfc}}} - Geometric part of the vector layer, the **geometry column**
+    * \textcolor{blue}{\texttt{\textbf{sfg}}} - **Geometry** of an individual simple feature
+
+```{r, echo=FALSE, out.width="250px"}
+knitr::include_graphics("images/sf.png")
+```
+
+## Creating layers from scratch
+
+* As mentioned above, the main classes in the `sf` package are - 
+    * **`sfg`** - geometry 
+    * **`sfc`** - geometry column 
+    * **`sf`** - layer 
+* Let's create an object for each of these classes to learn more about them 
+* First load the `sf` package -
+
+```{r}
+library(sf)
+```
+
+## Geometry (**`sfg`**)
+
+* Objects of class **`sfg` (geometry)** can be created using the appropriate function for each geometry type - 
+    * **`st_point`**
+    * `st_multipoint`
+    * `st_linestring`
+    * `st_multilinestring`
+    * `st_polygon`
+    * `st_multipolygon`
+    * `st_geometrycollection`
+* From coordinates passed as - 
+    * **`numeric` vectors**
+    * `matrix` objects
+    * `list` objects
+
+## Geometry (**`sfg`**)
+
+```{r echo=FALSE, fig.cap="Simple feature geometry (\\texttt{sfg}) types in package \\texttt{sf}", fig.width=6.8, fig.height=4, out.width="300px", warning=FALSE}
+# knitr::include_graphics("images/simple_feature_types.png")
+point = st_as_sfc("POINT (30 10)")[[1]]
+linestring = st_as_sfc("LINESTRING (30 10, 10 30, 40 40)")[[1]]
+polygon = st_as_sfc("POLYGON ((35 10, 45 45, 15 40, 10 20, 35 10),(20 30, 35 35, 30 20, 20 30))")[[1]]
+multipoint = st_as_sfc("MULTIPOINT ((10 40), (40 30), (20 20), (30 10))")[[1]]
+multilinestring = st_as_sfc("MULTILINESTRING ((10 10, 20 20, 10 40),(40 40, 30 30, 40 20, 30 10))")[[1]]
+multipolygon = st_as_sfc("MULTIPOLYGON (((40 40, 20 45, 45 30, 40 40)),((20 35, 10 30, 10 10, 30 5, 45 20, 20 35),(30 20, 20 15, 20 25, 30 20)))")[[1]]
+geometrycollection = st_as_sfc("GEOMETRYCOLLECTION (POLYGON((30 20, 45 40, 10 40, 30 20)),LINESTRING (10 10, 20 20, 10 30),POINT (40 20))")[[1]]
+pol = st_as_sfc("POLYGON((30 20, 45 40, 10 40, 30 20))")[[1]]
+l = st_as_sfc("LINESTRING (10 10, 20 20, 10 30)")[[1]]
+p = st_as_sfc("POINT (40 20)")[[1]]
+opar = par()
+par(mfrow = c(2, 4), mar = c(1,1,1,1))
+plot(point, main = "POINT", col = "blue", cex = 1.8, lwd = 2)
+plot(linestring, main = "LINESTRING", col = "blue", lwd = 2)
+plot(polygon, main = "POLYGON", border = "blue", col = "#0000FF33", lwd = 2)
+plot(1, type="n", axes=F, xlab="", ylab="")
+plot(multipoint, main = "MULTIPOINT", col = "blue", cex = 1.8, lwd = 2)
+plot(multilinestring, main = "MULTILINESTRING", col = "blue", lwd = 2)
+plot(multipolygon, main = "MULTIPOLYGON", border = "blue", col = "#0000FF33", lwd = 2)
+plot(geometrycollection, main = "GEOMETRYCOLLECTION", col = NA, border = NA, lwd = 2)
+plot(pol, border = "blue", col = "#0000FF33", add = TRUE, lwd = 2)
+plot(l, col = "blue", add = TRUE, lwd = 2)
+plot(p, col = "blue", add = TRUE, cex = 1.8, lwd = 2)
+par(opar)
+```
+
+## Geometry (**`sfg`**)
+
+* For example, we can create an object named `pnt1` representing a `POINT` geometry with `st_point` - 
+
+```{r}
+pnt1 = st_point(c(34.812831, 31.260284))
+```
+
+* Printing the object in the console gives the **WKT** representation -
+
+```{r}
+pnt1
+```
+
+## Geometry (**`sfg`**)
+
+* Note the class definition of an **`sfg` (geometry)** object is actually composed of three parts -  
+    * **`XY`** - The dimensions type (`XY`, `XYZ`, `XYM` or `XYZM`)    
+    * **`POINT`** - The geometry type (`POINT`, `MULTIPOLYGON`, etc.)
+    * **`sfg`** - The general class (`sfg` = Simple Feature Geometry)
+* For example, the `pnt1` object has geometry `POINT` and dimensions `XY` -
+
+```{r}
+class(pnt1)
+```
+
+## Geometry column (**`sfc`**)
+
+* Let's create a second object named `pnt2`, representing a different point -
+
+```{r}
+pnt2 = st_point(c(34.798443, 31.243288))
+```
+
+* Geometry objects (`sfg`) can be *collected* into an **`sfc` (geometry column)** objects 
+* This is done with function `st_sfc`
+
+## Geometry column (**`sfc`**)
+
+* **Geometry column** objects contain a **Coordinate Reference System (CRS)** definition, specified with **`crs`** 
+* Two types of arguments are accepted - 
+    * A **PROJ.4** definition (`"+proj=longlat +datum=WGS84"`)
+    * An **EPSG** code (`4326`)
+* Let's combine the two `POINT` geometries `pnt1` and `pnt2` into an **`sfc` (geometry column)** object `pnt` - 
+
+```{r}
+geom = st_sfc(pnt1, pnt2, crs = 4326)
+```
+
+## Geometry column (**`sfc`**)
+
+* Here is a summary of the resulting geometry column - 
+
+```{r}
+geom
+```
+
+## Layer (**`sf`**)
+
+* A **`sfc` (geometry column)** can be combined with non-spatial columns (*attributes*), resulting in an **`sf` (layer)** object
+* In our case the two points in the **`sfc` (geometry column)** `pnt` represent the location of the two railway stations in Beer-Sheva
+* Let's create a `data.frame` with a `name` column specifying **station name**
+* Note that the **order** of attributes must match the order of the geometries    
+
+## Layer (**`sf`**)
+
+* Creating the attribute table - 
+
+```{r}
+dat = data.frame(
+  name = c("Beer-Sheva North", "Beer-Sheva Center")
+)
+```
+
+```{r}
+dat
+```
+
+## Layer (**`sf`**)
+
+* And combining the **attribute table** with the **geometry column** - 
+
+```{r}
+pnt = st_sf(dat, geom)
+```
+
+```{r}
+pnt
+```
+
+## Extracting layer components
+
+* In the last few slides we - 
+    * Started from raw **coordinates**
+    * Convered them to **geometry** objects (`sfg`) 
+    * Combined the geometries to a **geometry column** (`sfc`)
+    * Added attributes to the geometry column to get a **layer** (`sf`)
+* Sometimes we are interested in the opposite process
+* We may need to extract the simpler components (**geometry**, **attributes**, **coordinates**) from an existing layer
+
+## Extracting layer components
+
+* The **`sfc` (geometry column)** component can be extracted from an **`sf` (layer)** object using function **`st_geometry`** -
+
+```{r}
+st_geometry(pnt)
+```
+
+## Extracting layer components
+
+* The non-spatial columns of an **`sf` (layer)**, i.e. the **attribute table**, can be extracted from an `sf` object using function **`st_set_geometry`** and **`NULL`** - 
+
+```{r}
+st_set_geometry(pnt, NULL)
+```
+
+## Extracting layer components
+
+* The **coordinates** (`matrix` object) of **`sf`**, **`sfc`** or **`sfg`** objects can be obtained with function **`st_coordinates`** - 
+
+```{r}
+st_coordinates(pnt)
+```
+
+## Interactive mapping with `mapview`
+
+* Function `mapview` is useful for inspecting spatial data - 
+
+```{r, eval=FALSE}
+library(mapview)
+mapview(pnt)
+```
+
+```{r, echo=FALSE, fig.cap="Intractive map of \\texttt{pnt} layer", out.width="250px"}
+knitr::include_graphics("images/leaflet2.png")
+```
+
+## 
+
+\begin{center}
+\Huge Part III: Advanced \textbf{\texttt{sf}}
+\end{center}
+
+## Reading layers into R
+
+* Here are the driver names of some commonly used **vector layer formats** that can be read into R - 
+    * `ESRI Shapefile`
+    * `GeoJSON`
+    * `GPX`
+    * `KML`
+* Note that it is also possible to read / write to **spatial databases** such as - 
+    * `PostgreSQL/PostGIS` 
+    * `SQLite/Spatialite` 
+* For complete list of **available drivers** -
+
+```{r, eval=FALSE}
+View(st_drivers(what = "vector"))
+```
+
+## Reading layers into R
+
+* In the following examples, we will use two vector layers - 
+    * **US state borders** 
+    * **Storm tracks** 
+* We will import both from **Shapefiles** 
+    * Download a ZIP archive with both layers from [here](https://github.com/michaeldorman/R-Spatial-Workshop-at-IGU-2017/blob/master/data.zip?raw=true) 
+    * Extract the file contents into a new directory
+    * Use `setwd` to change the **Working Directory** 
+
+```{r, eval=FALSE}
+setwd("C:/Tutorials/sf")
+```
+
+## Reading layers into R
+
+* Next we use **`st_read`** function to **read the layer**
+* In case the Shapefile is located in the Working Directory we just need to specify the **name of the `shp` file**
+* We can also specify `stringsAsFactors = FALSE` to **avoid conversion** of `character` to `factor`
+
+```{r, eval=FALSE}
+states = st_read(
+  dsn = "cb_2015_us_state_5m.shp", 
+  stringsAsFactors = FALSE
+)
+tracks = st_read(
+  dsn = "hurmjrl020.shp", 
+  stringsAsFactors = FALSE
+)
+```
+
+```{r, message=FALSE, include=FALSE}
+states = st_read(
+  dsn = "/home/michael/Dropbox/Presentations/p_2017_08_R_workshop/michael/data/cb_2015_us_state_5m.shp", 
+  stringsAsFactors = FALSE
+)
+tracks = st_read(
+  dsn = "/home/michael/Dropbox/Presentations/p_2017_08_R_workshop/michael/data/hurmjrl020.shp", 
+  stringsAsFactors = FALSE
+)
+```
+
+## Basic plotting
+
+* `states` is a **polygonal** layer containing **US states borders**
+* It has **49 features** and **1 attribute** - 
+    * `state` = State name
+
+```{r}
+dim(states)
+```
+
+```{r, eval=FALSE}
+plot(states)
+```
+
+## Basic plotting
+
+```{r, echo=FALSE, fig.cap="The \\texttt{states} layer", out.width="300px"}
+plot(states)
+```
+
+## Basic plotting
+
+* `tracks` is a **line** layer with **storm trajectories**
+* Each feature represents a storm **segment**
+* It has **4056 features** and **7 attributes** -
+    * `btid` = Track ID
+    * `year` = Year
+    * `month` = Month
+    * `day` = Day
+    * `name` = Storm name
+    * `wind_mph` = Wind speed (miles / hour)
+    * `category` = Storm category (e.g. `H5` = Category 5 Hurricane)
+
+```{r}
+dim(tracks)
+```
+
+
+```{r, eval=FALSE}
+plot(tracks)
+```
+
+## Basic plotting
+
+```{r, echo=FALSE, fig.cap="The \\texttt{tracks} layer", out.width="280px", warning=FALSE}
+plot(tracks)
+```
+
+## Basic plotting
+
+* When we are plotting an `sfc` **geometry column**, the plot only displays the geometric shape
+* We can use **basic graphical parameters** to control the appearance, such as - 
+    * `col` - Fill color
+    * `border` - Outline color
+    * `pch` - Point shape
+    * `cex` - Point size
+
+* For example, to draw **states outline in grey** - 
+
+```{r, eval=FALSE}
+plot(st_geometry(states), border = "grey")
+```
+
+## Basic plotting
+
+```{r, echo=FALSE, fig.cap="Basic plot of \\texttt{sfc} object", out.width="300px"}
+plot(st_geometry(states), border = "grey")
+```
+
+## Basic plotting
+
+* Additional vector layers can be **drawn** in an **existing graphical window** with `add=TRUE`
+* For example, the following expressions draw **both** `tracks` and `states`
+* Note that the second expression uses **`add=TRUE`**
+
+```{r, eval=FALSE}
+plot(st_geometry(states), border = "grey")
+plot(st_geometry(tracks), col = "red", add = TRUE)
+```
+
+## Basic plotting
+
+```{r, echo=FALSE, fig.cap="Using \\texttt{add=TRUE} in \\texttt{plot}", out.width="300px"}
+plot(st_geometry(states), border = "grey")
+plot(st_geometry(tracks), col = "red", add = TRUE)
+```
+
+## Interactive map with `mapview`
+
+```{r, eval=FALSE}
+mapview(tracks, zcol = "wind_mph", legend = TRUE)
+```
+
+```{r, echo=FALSE, fig.cap="Intractive map of \\texttt{tracks} layer", out.width="250px"}
+knitr::include_graphics("images/leaflet3.png")
+```
+
+## Subsetting
+
+* **Subsetting** (filtering) of features in an `sf` vector layer is done in exactly the same way as filtering rows in a `data.frame`
+* For example, the following expression filters the `tracks` layer to keep only those storms **which took place after 1949** 
+
+```{r}
+tracks = tracks[tracks$year > 1949, ]
+```
+
+## Reprojection
+
+* **Reprojection** is an important part of spatial analysis workflow since as we often need to -
+    * Transform several layers into the same projection
+    * Switch between un-projected and projected data
+* A vector layer can be reprojected with **`st_transform`**
+* `st_transform` has **two parameters** - 
+    * **`x`** - The **layer** to be reprojected 
+    * **`crs`** - The **target CRS**
+* The CRS can be **specified** in one of two ways - 
+    * A **PROJ.4** definition (`"+proj=longlat +datum=WGS84"`)
+    * An **EPSG** code (`4326`)
+
+## Reprojection
+
+* In the following code section we are reprojecting both the `states` and `tracks` layers 
+* The **target CRS** is the *US National Atlas Equal Area* projection (EPSG=`2163`)
+
+```{r}
+states = st_transform(states, 2163)
+tracks = st_transform(tracks, 2163)
+```
+
+## Reprojection
+
+```{r, echo=FALSE, fig.cap="Reprojected \\texttt{states} layer", out.width="300px"}
+plot(states)
+```
+
+## Geometric calculations
+
+**Geometric operations** on vector layers can conceptually be divided into **three groups** according to their output -
+
+* **Numeric** values: Functions that summarize geometrical properties of - 
+    * A **single layer** (e.g. area, length)
+    * A **pair of layers** (e.g. distance)
+* **Logical** values: Functions that evaluate whether a certain condition holds true, regarding -
+    * A **single layer** (e.g. geometry is valid) 
+    * A **pair of layers** (e.g. feature A intersects feature B)
+* **Spatial** layers: Functions that create a new layer based on - 
+    * A **single layer** (e.g. centroids) 
+    * A **pair of layers** (e.g. intersection area)
+
+## Numeric
+
+* There are several functions to calculate **numeric geometric properties** of vector layers in package `sf` - 
+    * `st_length`
+    * `st_area`
+    * `st_distance`
+    * `st_bbox`
+    * `st_dimension`
+
+## Numeric
+
+* For example, we can calculate the area of each feature in the `states` layer (i.e. each state) using `st_area` -
+
+```{r}
+states$area = st_area(states)
+states$area[1:3]
+```
+
+* The result is an object of class `units` -
+
+```{r}
+class(states$area)
+```
+
+## Numeric
+
+* We can convert measurements to different units with `set_units` from package `units` - 
+
+```{r}
+library(units)
+
+states$area = set_units(states$area, km^2)
+states$area[1:3]
+```
+
+* Inspecting result -
+
+```{r, eval=FALSE}
+plot(states[, "area"])
+```
+
+## Numeric
+
+```{r, echo=FALSE, fig.cap="Calculated \\texttt{area} attribute", out.width="275px", fig.width=7, fig.height=5}
+plot(states[, "area"])
+```
+
+## Logical
+
+* Given two layers, `x` and `y`, the following **logical geometric functions** check whether each feature in `x` maintains the specified **relation** with each feature in `y` -
+    * `st_intersects`
+    * `st_disjoint`
+    * `st_touches`
+    * `st_crosses`
+    * `st_within`
+    * `st_contains`
+    * `st_overlaps`
+    * `st_covers`
+    * `st_covered_by`
+    * `st_equals`
+    * `st_equals_exact`
+
+## Logical
+
+* When specifying `sparse=FALSE` the functions return a **logical `matrix`**
+* Each **element** `i,j` in the matrix is `TRUE` when `f(x[i], y[j])` is `TRUE`
+* For example, this creates a matrix of **intersection** relations between states - 
+
+```{r}
+int = st_intersects(states, states, sparse = FALSE)
+```
+
+```{r}
+int[1:4, 1:4]
+```
+
+## Logical
+
+```{r, echo=FALSE, fig.cap="Intersection relations between \\texttt{states} features", out.width="225px"}
+int1 = apply(int, 2, rev)
+int1 = t(int1)
+image(int1, col = c("lightgrey", "red"), asp = 1, axes = FALSE)
+axis(3, at = seq(0, 1, 1/(nrow(int1)-1)), labels = states$state, las = 2, lwd = 0, lwd.ticks = 1, cex.axis = 0.75)
+axis(2, at = seq(0, 1, 1/(nrow(int1)-1)), labels = rev(states$state), las = 1, pos = -0.01, lwd = 0, lwd.ticks = 1, cex.axis = 0.75)
+```
+
+## Spatial
+
+* `sf` provides common **geometry-generating** functions applicable to **individual** geometries, such as - 
+    * `st_centroid`
+    * `st_buffer`
+    * `st_sample`
+    * `st_convex_hull`
+    * `st_voronoi`
+
+```{r, echo=FALSE, fig.cap="Geometry-generating operations on individual layers", fig.height = 3, fig.width = 15, out.width="300px"}
+set.seed(1)
+x = st_multipoint(matrix(runif(10), ncol = 2))
+x = st_buffer(st_sfc(lapply(1:3, function(x) st_point(c(x,x)))), 0.2 * 1:3)
+
+par(mfrow=c(1,5), mar = c(0,0,1,0))
+
+plot(x, border = '#ff333388')
+plot(st_centroid(x), add = TRUE, pch = 3)
+title("st_centroid")
+
+plot(x, border = '#ff333388')
+plot(st_buffer(x, dist = 0.1), add = TRUE, pch = 3)
+plot(st_buffer(x, dist = 0.2), add = TRUE, pch = 3)
+plot(st_buffer(x, dist = 0.3), add = TRUE, pch = 3)
+plot(st_buffer(x, dist = 0.4), add = TRUE, pch = 3)
+plot(st_buffer(x, dist = 0.5), add = TRUE, pch = 3)
+title("st_buffer")
+
+s = split(x, 1:3)
+s = lapply(s, st_sample, size = 5)
+s = lapply(s, st_combine)
+s = do.call(c, s)
+
+plot(x, border = '#ff333388')
+plot(s, add = TRUE, pch = 3)
+title("st_sample")
+
+plot(s, col = '#ff333388', pch = 3)
+plot(st_convex_hull(s), add = TRUE, pch = 3)
+title("st_convex_hull")
+
+s = st_union(s)
+# s = st_cast(s, "POINT")
+v = st_voronoi(s)
+
+plot(s, col = '#ff333388', pch = 3)
+plot(v, col = NA, border = 1, axes = FALSE, add = TRUE)
+title("st_voronoi")
+```
+
+## Spatial
+
+* For example, the following expression uses `st_centroid` to create a layer of **state centroids** - 
+
+```{r}
+states_ctr = st_centroid(states)
+```
+
+* They can be **plotted** as follows - 
+
+```{r, eval=FALSE}
+plot(
+  st_geometry(states), 
+  border = "grey"
+)
+plot(
+  st_geometry(states_ctr), 
+  col = "red", pch = 3, 
+  add = TRUE
+)
+```
+
+## Spatial
+
+```{r, echo=FALSE, fig.cap="State centroids", out.width="300px", warning=FALSE}
+plot(st_geometry(states), border = "grey")
+plot(st_geometry(states_ctr), col = "red", pch = 3, add = TRUE)
+```
+
+## Spatial
+
+* Other **geometry-generating** functions work on **pairs** of input geometries -
+    * `st_intersection`
+    * `st_difference`
+    * `st_sym_difference`
+    * `st_union`
+
+```{r, echo=FALSE, fig.cap="Geometry-generating operations on pairs of layers", fig.height = 3, fig.width = 15, out.width="300px"}
+x = st_point(c(0, 0))
+x = st_buffer(x, 0.5)
+y = st_point(c(0.5, 0))
+y = st_buffer(y, 0.5)
+
+xy = c(x, y)
+
+par(mfrow=c(1,5), mar = c(0,0,1,0))
+
+plot(xy, border = NA)
+plot(x, add = TRUE, col = '#ff333388')
+plot(y, add = TRUE, col='#33ff3388')
+title("x: red, y: green")
+
+plot(xy, border = 'grey')
+plot(st_intersection(x, y), col = 'lightblue', add = TRUE)
+title("intersection(x, y)")
+
+plot(xy, border = 'grey')
+plot(st_difference(x, y), col = 'lightblue', add = TRUE)
+title("difference(x, y)")
+
+plot(xy, border = 'grey')
+plot(st_sym_difference(x, y), col = 'lightblue', add = TRUE)
+title("sym_difference(x, y)")
+
+plot(xy, border = 'grey')
+plot(st_union(x, y), col = 'lightblue', add = TRUE)
+title("union(x, y)")
+```
+
+## Spatial
+
+* For example, to calculate **total tracks length per state** we can use `st_intersection` to 'split' the `tracks` layer by State - 
+
+```{r, message=FALSE, warning=FALSE}
+tracks_int = st_intersection(tracks, states)
+```
+
+## Spatial
+
+* The result is a new line layer split by state borders and including a `state` attribute - 
+
+```{r, eval=FALSE}
+plot(
+  st_geometry(states), 
+  border = "grey"
+  )
+plot(
+  tracks_int[, "state"], 
+  lwd = 3,
+  add = TRUE
+  )
+```
+
+## Spatial
+
+```{r, echo=FALSE, fig.cap="Intersection result", out.width="300px", warning=FALSE}
+plot(st_geometry(states), border = "lightgrey")
+plot(tracks_int[, "state"], lwd = 3, add = TRUE)
+```
+
+## Spatial
+
+* The resulting layer has mixed `LINESTERING` and `MULTILINESTRING` geometries (Why?)
+
+```{r}
+class(tracks_int$geometry)
+```
+
+* To calculate line length we need to convert it to `MULTILINESTRING` -
+
+```{r}
+tracks_int = st_cast(tracks_int, "MULTILINESTRING")
+```
+
+* Verifying the conversion succeeded - 
+
+```{r}
+class(tracks_int$geometry)
+```
+
+## Spatial
+
+* Let's add a **storm track length** attribute called `length` -
+
+```{r}
+tracks_int$length = st_length(tracks_int)
+tracks_int$length = set_units(tracks_int$length, km)
+```
+
+## Join layer with table
+
+* Next we aggregate attribute table of `tracks_int` by `state`, to find the sum of `length` values -  
+
+```{r, message=FALSE}
+library(dplyr)
+
+track_lengths = 
+  tracks_int %>% 
+  st_set_geometry(NULL) %>% 
+  group_by(state) %>% 
+  summarize(length = sum(length)) %>% 
+  as.data.frame
+```
+
+## Join layer with table
+
+* The result is a `data.frame` with **total length** of storm tracks **per state** -
+
+```{r}
+head(track_lengths)
+```
+
+## Join layer with table
+
+* Next, we can **join** the aggregated table back to the `states` layer - 
+
+```{r}
+states = merge(
+  states, 
+  track_lengths, 
+  by = "state", 
+  all.x = TRUE
+)
+```
+
+## Join layer with table
+
+* Here is the `states` layer summary after the join -
+
+```{r}
+head(states)
+```
+
+## Join layer with table
+
+```{r, echo=FALSE, fig.cap="Total track length per state", out.width="275px", warning=FALSE, fig.width=7, fig.height=5}
+plot(states[, "length"])
+```
+
+## Join layer with table
+
+* Finally, we **divide** total track length by state area
+* This gives us track **density** per state - 
+
+```{r}
+states$track_density = states$length / states$area
+```
+
+* Plotting the layer shows the new `track_density` attribute - 
+
+```{r, eval=FALSE}
+plot(states)
+```
+
+## Join layer with table
+
+```{r, echo=FALSE, fig.cap="Track density per state", out.width="275px", warning=FALSE, fig.width=7, fig.height=5}
+plot(states[, "track_density"])
+```
+
+## Join layer with table
+
+```{r, echo=FALSE, fig.cap="States layer with calculated attributes", out.width="300px", warning=FALSE}
+plot(states)
+```
+
+## More information
+
+* Official `sf` [tutorials](https://cran.r-project.org/web/packages/sf/index.html)
+* `sf` tutorial from [useR!2017](https://edzer.github.io/UseR2017/) conference
+* The r-spatial [blog](http://r-spatial.org/)
+* Geocomputation with R (2018) [book](https://geocompr.robinlovelace.net/)
+
+## Thank you for listening!
+
+```{r, echo=FALSE, fig.cap="Level 5 hurricanes, wind speed and affected states", out.width="300px"}
+strong = unique(tracks$btid[tracks$category == "H5"])
+tracks_h5 = tracks[tracks$btid %in% strong, ]
+states_tracks = st_join(states, tracks)
+states_tracks_h5 = states_tracks[!is.na(states_tracks$btid) & states_tracks$btid %in% strong, ]
+states_tracks_h5 = states_tracks_h5[!duplicated(states_tracks_h5[, c("state", "name")]), ]
+states_ctr_h5 = st_join(states_ctr, states_tracks_h5)
+
+library(ggplot2)
+ggplot() +
+  geom_sf(data = states, fill = NA, colour = "darkgrey", size = 0.1) +
+  geom_sf(data = states_tracks_h5, fill = "red", colour = "black", size = 0.3, alpha = 0.2) +
+  geom_sf(data = tracks_h5, aes(size = wind_mph, colour = wind_mph)) +
+  geom_sf(data = tracks_h5, colour = "black", size = 0.2) +
+  coord_sf(xlim = st_bbox(states)[c(1,3)], ylim = st_bbox(states)[c(2,4)]) +
+  scale_size_continuous(range = c(0.1, 5), guide = FALSE) +
+  scale_colour_distiller("Wind speed\n(miles / hour)", palette = "Spectral") +
+  facet_wrap(~ name, ncol = 3) +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_line(colour = "transparent"),
+    axis.text = element_blank(),
+    axis.ticks = element_blank(),
+    legend.position = c(0.8, 0.17)
+    )
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
